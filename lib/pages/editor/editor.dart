@@ -1,6 +1,103 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
+/*Editor 類概述
+屬性:
+initialPath: Future<String> - 初始檔案路徑，可能是提供的或創建的。
+needsNaming: bool - 指示是否需要命名檔案。
+customTitle: String? - 編輯器的自定義標題。
+pdfPath: String? - 要加載的 PDF 文件路徑。
+extension: const String - 應用程序使用的文件擴展名（.sbn2）。
+extensionOldJson: const String - 應用程序使用的舊文件擴展名（.sbn）。
+gapBetweenPages: const double - 頁面之間的間距。
+_reservedFilePaths: List<RegExp> - 用於隱藏文件的保留路徑。
+canRasterPdf: bool - 指示平台是否可以光柵化 PDF。
+方法:
+isReservedPath(String path): 檢查給定的路徑是否是保留路徑。
+createState(): 為 Editor 小部件創建可變狀態。
+EditorState 類概述
+屬性:
+log: Logger - 用於記錄日誌的實例。
+coreInfo: EditorCoreInfo - 編輯器的核心信息。
+_canvasGestureDetectorKey: GlobalKey<CanvasGestureDetectorState> - 畫布手勢檢測器的鍵。
+_transformationController: TransformationController - 管理變換（如縮放和平移）。
+scrollY: double - 計算 Y 軸的滾動位置。
+history: EditorHistory - 管理編輯器歷史記錄以進行撤銷/重做操作。
+needsNaming: bool - 指示是否需要命名。
+_currentTool: Tool - 當前選中的工具。
+currentTool: Tool - 當前工具的 getter。
+savingState: ValueNotifier<SavingState> - 跟踪保存狀態。
+_delayedSaveTimer: Timer? - 用於延遲保存操作的計時器。
+lastSeenPointerCount: int - 跟踪上次看到的指針數量。
+_lastSeenPointerCountTimer: Timer? - 指針數量跟踪計時器。
+quillFocus: ValueNotifier<QuillStruct?> - 管理 Quill 編輯器的焦點狀態。
+tmpTool: Tool? - 切換到橡皮擦之前使用的臨時工具。
+stylusButtonPressed: bool - 記錄觸控筆按鈕是否被按下。
+_ctrlZ, _ctrlY, _ctrlShiftZ: Keybinding? - 撤銷/重做操作的鍵盤快捷鍵。
+_filenameFormKey: GlobalKey<FormState> - 文件名輸入表單的鍵。
+filenameTextEditingController: TextEditingController - 文件名輸入的控制器。
+_renameTimer: Timer? - 延遲重命名操作的計時器。
+方法:
+initState(): 初始化編輯器的狀態。
+_initAsync(): 執行異步初始化。
+_assignKeybindings(): 分配撤銷/重做的鍵盤快捷鍵。
+_removeKeybindings(): 移除鍵盤快捷鍵。
+createPage(int pageIndex): 創建頁面直到給定的頁面索引存在，並且加上一個空白頁面。
+removeExcessPages(): 如果頁面是空的，則移除多餘的頁面。
+undo([EditorHistoryItem? item]): 執行撤銷操作。
+redo(): 執行重做操作。
+onWhichPageIsFocalPoint(Offset focalPoint): 確定焦點在哪個頁面上。
+onDrawStart(ScaleStartDetails details): 處理繪圖開始事件。
+onDrawUpdate(ScaleUpdateDetails details): 處理繪圖更新事件。
+onDrawEnd(ScaleEndDetails details): 處理繪圖結束事件。
+onInteractionEnd(ScaleEndDetails details): 處理交互結束事件。
+onPressureChanged(double? pressure): 處理壓力改變事件。
+onStylusButtonChanged(bool buttonPressed): 處理觸控筆按鈕改變事件。
+onMoveImage(EditorImage image, Rect offset): 處理圖像移動事件。
+onDeleteImage(EditorImage image): 處理圖像刪除事件。
+listenToQuillChanges(QuillStruct quill, int pageIndex): 監聽 Quill 編輯器的更改。
+_onQuillFocusChange(): 處理 Quill 編輯器的焦點改變。
+_addQuillChangeToHistory(...): 將 Quill 更改添加到歷史記錄中。
+autosaveAfterDelay(): 在延遲後自動保存。
+saveToFile(): 將文件保存到磁碟。
+renameFile([String? _]): 延遲重命名文件。
+_renameFileNow(): 執行實際的重命名操作。
+_validateFilenameTextField(String? newName): 驗證文件名輸入。
+updateColorBar(Color color): 使用給定的顏色更新顏色欄。
+_pickPhotos([List<_PhotoInfo>? photoInfos]): 提示用戶從設備中選擇照片。
+_pickPhotosWithFilePicker(): 使用文件選擇器選擇照片。
+importPdf(): 提示用戶選擇要導入的 PDF。
+importPdfFromFilePath(String path): 從給定的文件路徑導入 PDF。
+paste(): 從剪貼板粘貼內容。
+exportAsPdf(BuildContext context): 將當前筆記導出為 PDF 文件。
+exportAsSba(BuildContext context): 將當前筆記導出為 SBA (Saber Archive) 文件。
+setAndroidNavBarColor(): 設置 Android 導航欄顏色。
+build(BuildContext context): 構建小部件樹。
+snackBarNeedsToSaveBeforeExiting(): 顯示提示需要在退出前保存的 Snackbar。
+bottomSheet(BuildContext context): 構建底部選單以提供附加選項。
+pageBuilder(BuildContext context, int pageIndex): 為特定頁面構建畫布。
+pagePreviewBuilder(...): 為特定頁面構建預覽。
+pageManager(BuildContext context): 管理編輯器中的頁面。
+insertPageAfter(int pageIndex): 在指定頁面索引之後插入新頁面。
+clearPage(int pageIndex): 清除指定頁面的內容。
+clearAllPages(): 清除所有頁面的內容。
+askUserToDisableReadOnly(): 提示用戶禁用只讀模式。
+getPageIndexFromScrollPosition(...): 從滾動位置獲取頁面索引。
+dispose(): 釋放資源並執行清理。
+常量:
+extension: .sbn2
+extensionOldJson: .sbn
+gapBetweenPages: 16.0
+小部件:
+CanvasGestureDetector: 檢測畫布交互手勢。
+Toolbar: 包含編輯器的工具和操作。
+SaveIndicator: 顯示保存狀態。
+AdaptiveAlertDialog: 顯示提示對話框。
+AppBar: 顯示應用程序欄。
+Scaffold: 提供編輯器 UI 的結構。
+Form: 處理文件名輸入表單。
+TextFormField: 允許文件名輸入。*/
+
+import 'dart:async';//異步編程
+import 'dart:convert';//數據轉換功能
+import 'dart:io';//處理檔案、目錄、程序、套接字、Webstockets以及HTTP客戶端和伺服器
 
 import 'package:collapsible/collapsible.dart';
 import 'package:file_picker/file_picker.dart';
@@ -49,23 +146,24 @@ import 'package:saber/pages/home/whiteboard.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 
-typedef _PhotoInfo = ({Uint8List bytes, String extension});
+typedef _PhotoInfo = ({Uint8List bytes, String extension});//圖像數據和對應的文件擴展名
 
 class Editor extends StatefulWidget {
   Editor({
-    super.key,
-    String? path,
-    this.customTitle,
-    this.pdfPath,
+    super.key, // 接收一個 key 參數，用於控制框架將在 widget 樹中的位置
+    String? path, // 可選的路徑參數，用於指定文件的初始路徑，可以為 null
+    this.customTitle, // 自定義標題，成員變量直接在構造函數中通過 this 關鍵字初始化
+    this.pdfPath, // 可選的 PDF 路徑參數，用於加載 PDF 文件
   })  : initialPath =
-            path != null ? Future.value(path) : FileManager.newFilePath('/'),
-        needsNaming = path == null;
+            path != null ? Future.value(path) : FileManager.newFilePath('/'),        //如果提供了 path 參數，initialPath 將被設置為該路徑的 Future；
+  // 如果沒有提供 path 參數，將調用 FileManager.newFilePath 創建一個新的路徑
+        needsNaming = path == null;// 如果 path 為 null，表示需要對文件進行命名
 
-  final Future<String> initialPath;
-  final bool needsNaming;
+  final Future<String> initialPath; // 用於存儲文件的初始路徑，是一個異步的 Future 類型
+  final bool needsNaming; // 一個布爾值，用於指示是否需要用戶為文件命名
 
-  final String? customTitle;
-  final String? pdfPath;
+  final String? customTitle; // 自定義標題，可以為空（null），用於顯示在編輯器或相關界面上
+  final String? pdfPath; //PDF 文件的路徑，可為空，用於指定加載的 PDF 文件
 
   /// The file extension used by the app.
   /// Files with this extension are
@@ -77,7 +175,7 @@ class Editor extends StatefulWidget {
   /// encoded in JSON format.
   static const String extensionOldJson = '.sbn';
 
-  static const double gapBetweenPages = 16;
+  static const double gapBetweenPages = 16;// 頁面間的間隙，用於佈局或顯示時定義頁面之間的距離
 
   /// Returns true if [path] belongs to a hidden file
   /// used by other functions of the app
@@ -87,23 +185,23 @@ class Editor extends StatefulWidget {
 
   static final List<RegExp> _reservedFilePaths = [
     RegExp(RegExp.escape(Whiteboard.filePath)),
-  ];
+  ];//egExp（正則表達式）(RegExp（正則表達式）。
 
   /// Whether the platform can rasterize a pdf
-  static bool canRasterPdf = true;
+  static bool canRasterPdf = true;//PDF光柵化能力
 
-  @override
+  @override// @override 注解，重寫父類或接口中的方法
   State<Editor> createState() => EditorState();
 }
-
+// EditorState 類繼承自 State<Editor>，專門為 Editor 組件管理狀態
 class EditorState extends State<Editor> {
-  final log = Logger('EditorState');
+  final log = Logger('EditorState');// 使用 Logger 工具紀錄日誌
 
-  late EditorCoreInfo coreInfo = EditorCoreInfo(filePath: '');
+  late EditorCoreInfo coreInfo = EditorCoreInfo(filePath: '');// 延遲初始化，用於存儲編輯核心信息
 
   final _canvasGestureDetectorKey = GlobalKey<CanvasGestureDetectorState>();
   late final TransformationController _transformationController =
-      TransformationController()
+      TransformationController()// 用於管理變換操作，如縮放和平移
         ..addListener(() {
           PdfEditorImage.checkIfHighDpiNeeded(
             getZoom: () => _transformationController.value.getMaxScaleOnAxis(),
@@ -114,6 +212,7 @@ class EditorState extends State<Editor> {
                 double.infinity,
           );
         });
+  // 計算滾動的 Y 坐標，用於處理使用者介面的滾動行為
   double get scrollY {
     final transformation = _transformationController.value;
     final scale = transformation.getMaxScaleOnAxis();
@@ -129,75 +228,74 @@ class EditorState extends State<Editor> {
     }
   }
 
-  EditorHistory history = EditorHistory();
+  EditorHistory history = EditorHistory();// 創建一個 EditorHistory 實例，用於管理和記錄編輯器的歷史操作，詳細看data
 
-  late bool needsNaming = widget.needsNaming && Prefs.editorPromptRename.value;
-
+  late bool needsNaming = widget.needsNaming && Prefs.editorPromptRename.value;// 根據配置和 widget 的屬性來決定是否需要命名，看prefs.dart
+// 根據用戶上次使用的工具來初始化當前工具
   late Tool _currentTool = () {
-    switch (Prefs.lastTool.value) {
+    switch (Prefs.lastTool.value) {// 根據保存的上次工具偏好設置來選擇工具
       case ToolId.fountainPen:
-        if (Pen.currentPen.toolId != Prefs.lastTool.value) {
-          Pen.currentPen = Pen.fountainPen();
+        if (Pen.currentPen.toolId != Prefs.lastTool.value) {//檢查當前鋼筆是否已是選中的工具
+          Pen.currentPen = Pen.fountainPen();// 如果不是，更新為新的鋼筆實例
         }
         return Pen.currentPen;
-      case ToolId.ballpointPen:
+      case ToolId.ballpointPen://圓珠筆
         if (Pen.currentPen.toolId != Prefs.lastTool.value) {
           Pen.currentPen = Pen.ballpointPen();
         }
         return Pen.currentPen;
-      case ToolId.shapePen:
+      case ToolId.shapePen://形狀筆
         if (Pen.currentPen.toolId != Prefs.lastTool.value) {
           Pen.currentPen = ShapePen();
         }
         return Pen.currentPen;
-      case ToolId.highlighter:
+      case ToolId.highlighter:// 螢光筆
         return Highlighter.currentHighlighter;
-      case ToolId.pencil:
+      case ToolId.pencil://鉛筆
         return Pencil.currentPencil;
-      case ToolId.eraser:
+      case ToolId.eraser://橡皮擦
         return Eraser();
-      case ToolId.select:
+      case ToolId.select://選擇工具
         return Select.currentSelect;
-      case ToolId.textEditing:
+      case ToolId.textEditing://文字編輯工具。
         return Tool.textEditing;
-      case ToolId.laserPointer:
+      case ToolId.laserPointer://激光指示器。
         return LaserPointer.currentLaserPointer;
     }
-  }();
+  }();// 獲取当前工具。
   Tool get currentTool => _currentTool;
-  set currentTool(Tool tool) {
+  set currentTool(Tool tool) {//設置當前工具，並更新偏好設置中的上次工具
     _currentTool = tool;
     Prefs.lastTool.value = tool.toolId;
   }
 
-  ValueNotifier<SavingState> savingState = ValueNotifier(SavingState.saved);
-  Timer? _delayedSaveTimer;
+  ValueNotifier<SavingState> savingState = ValueNotifier(SavingState.saved);//ValueNotifier 是一个工具，可以帮助你追踪变量的变化，并且当变量改变时自动更新界面。这段代码中的 ValueNotifier 用来监视保存状态，当状态改变时，界面上相关的部分就会自动更新。
+  Timer? _delayedSaveTimer;//延遲保存操作的計時器
 
   // used to prevent accidentally drawing when pinch zooming
   int lastSeenPointerCount = 0;
   Timer? _lastSeenPointerCountTimer;
 
-  ValueNotifier<QuillStruct?> quillFocus = ValueNotifier(null);
+  ValueNotifier<QuillStruct?> quillFocus = ValueNotifier(null);// 使用 ValueNotifier 來管理 Quill 編輯器的焦點狀態
 
   /// The tool that was used before switching to the eraser.
-  Tool? tmpTool;
+  Tool? tmpTool;// 記錄使用橡皮擦之前使用的工具
 
   /// If the stylus button is pressed, or was pressed during the current draw gesture.
-  bool stylusButtonPressed = false;
-
+  bool stylusButtonPressed = false;//記錄觸控筆按鈕是否被按下，或在當前繪畫手勢期間是否被按下
   @override
-  void initState() {
-    DynamicMaterialApp.addFullscreenListener(_setState);
+  void initState() {//widget 的生命周期中首次創建时調用。
+    DynamicMaterialApp.addFullscreenListener(_setState);// 添加全屏監聽器，當全屏狀態改變時更新 UI（set state）
 
-    _initAsync();
-    _assignKeybindings();
+    _initAsync();//進行異步初始化操作（這種類型的函數通常用於加載數據、初始化服務或執行其他可能需要等待完成的任務）
+    _assignKeybindings();// 分配鍵盤快捷鍵
 
     super.initState();
   }
 
   void _initAsync() async {
-    coreInfo.filePath = await widget.initialPath;
-    filenameTextEditingController.text = coreInfo.fileName;
+    coreInfo.filePath = await widget.initialPath;// 異步獲取初始文件路徑
+    filenameTextEditingController.text = coreInfo.fileName;// 界面上的文本框（TextField）中顯示的內容設置為當前文件的名字
 
     if (needsNaming) {
       filenameTextEditingController.selection = TextSelection(
@@ -206,25 +304,25 @@ class EditorState extends State<Editor> {
       );
     }
 
-    await _initStrokes();
+    await _initStrokes();//初始化筆劃數據
 
-    if (widget.pdfPath != null) {
+    if (widget.pdfPath != null) {//導入 PDF 文件
       await importPdfFromFilePath(widget.pdfPath!);
     }
   }
 
-  Future _initStrokes() async {
-    coreInfo = await EditorCoreInfo.loadFromFilePath(coreInfo.filePath);
+  Future _initStrokes() async {// 異步方法，用於初始化涉及到筆跡的所有數據和狀態
+    coreInfo = await EditorCoreInfo.loadFromFilePath(coreInfo.filePath);  // 從文件路徑加載編輯器核心信息
     if (coreInfo.readOnly) {
-      log.info('Loaded file as read-only');
+      log.info('Loaded file as read-only');// 如果文件是只讀的，記錄信息
     }
 
-    for (int pageIndex = 0; pageIndex < coreInfo.pages.length; pageIndex++) {
+    for (int pageIndex = 0; pageIndex < coreInfo.pages.length; pageIndex++) {  // 遍歷所有頁面，為每個頁面的 Quill 編輯器設置變更監聽
       listenToQuillChanges(coreInfo.pages[pageIndex].quill, pageIndex);
     }
 
-    if (coreInfo.isEmpty) {
-      createPage(-1);
+    if (coreInfo.isEmpty) {  // 如果核心信息指示沒有內容，創建一個新頁面；否則，為每個頁面上的背景圖片和圖片設置事件處理
+      createPage(-1);// 創建一個新頁面
     } else {
       for (EditorPage page in coreInfo.pages) {
         page.backgroundImage?.onMoveImage = onMoveImage;
@@ -238,7 +336,7 @@ class EditorState extends State<Editor> {
       }
     }
 
-    if (currentTool == Tool.textEditing) {
+    if (currentTool == Tool.textEditing) { //如果當前工具是文本編輯，嘗試設置焦點到初始頁面的 Quill 編輯器
       int pageIndex;
       if (coreInfo.initialPageIndex != null) {
         pageIndex = coreInfo.initialPageIndex!;
@@ -250,25 +348,25 @@ class EditorState extends State<Editor> {
       quillFocus.value = coreInfo.pages[pageIndex].quill
         ..focusNode.requestFocus();
     }
-
+// 如果文件路徑是白板的路徑，並且設置了退出時自動清除白板，執行清除操作
     if (coreInfo.filePath == Whiteboard.filePath &&
         Prefs.autoClearWhiteboardOnExit.value &&
         Whiteboard.needsToAutoClearWhiteboard) {
       // clear whiteboard (and add to history)
-      clearAllPages();
+      clearAllPages();// 清除所有頁面
 
       // save cleared whiteboard
-      await saveToFile();
+      await saveToFile();// 保存文件
       Whiteboard.needsToAutoClearWhiteboard = false;
     } else {
-      setState(() {});
+      setState(() {});// 刷新狀態
     }
   }
 
   void _setState() => setState(() {});
 
-  Keybinding? _ctrlZ, _ctrlY, _ctrlShiftZ;
-  void _assignKeybindings() {
+  Keybinding? _ctrlZ, _ctrlY, _ctrlShiftZ;// 定義三個鍵盤快捷鍵變量：撤銷、重做（兩種組合）
+  void _assignKeybindings() {// 設置鍵盤快捷键
     _ctrlZ = Keybinding([KeyCode.ctrl, KeyCode.from(LogicalKeyboardKey.keyZ)],
         inclusive: true);
     _ctrlY = Keybinding([KeyCode.ctrl, KeyCode.from(LogicalKeyboardKey.keyY)],
@@ -276,12 +374,12 @@ class EditorState extends State<Editor> {
     _ctrlShiftZ = Keybinding(
         [KeyCode.ctrl, KeyCode.shift, KeyCode.from(LogicalKeyboardKey.keyZ)],
         inclusive: true);
-    Keybinder.bind(_ctrlZ!, undo);
+    Keybinder.bind(_ctrlZ!, undo);  // 使用 Keybinder 工具將快捷鍵與對應的撤銷和重做函數綁定
     Keybinder.bind(_ctrlY!, redo);
     Keybinder.bind(_ctrlShiftZ!, redo);
   }
 
-  void _removeKeybindings() {
+  void _removeKeybindings() {// 移除設置的鍵盤快捷键。
     if (_ctrlZ != null) Keybinder.remove(_ctrlZ!);
     if (_ctrlY != null) Keybinder.remove(_ctrlY!);
     if (_ctrlShiftZ != null) Keybinder.remove(_ctrlShiftZ!);
@@ -290,7 +388,7 @@ class EditorState extends State<Editor> {
   /// Creates pages until the given page index exists,
   /// plus an extra blank page
   void createPage(int pageIndex) {
-    while (pageIndex >= coreInfo.pages.length - 1) {
+    while (pageIndex >= coreInfo.pages.length - 1) {  // 如果需要的頁面索引大於等於現有頁面數量，繼續添加頁面
       final page = EditorPage();
       coreInfo.pages.add(page);
       listenToQuillChanges(page.quill, coreInfo.pages.length - 1);
@@ -313,7 +411,7 @@ class EditorState extends State<Editor> {
       }
     }
 
-    if (removedAPage) {
+    if (removedAPage) {//移除多餘的頁面
       // scroll to the last page (only if we're below the last page)
 
       final scrollY = this.scrollY;
@@ -340,7 +438,7 @@ class EditorState extends State<Editor> {
   }
 
   void undo([EditorHistoryItem? item]) {
-    if (item == null) {
+    if (item == null) {//檢查和處理撤銷操作
       if (!history.canUndo) return;
 
       // if we disabled redo, re-enable it
@@ -354,7 +452,7 @@ class EditorState extends State<Editor> {
       item = history.undo();
     }
 
-    setState(() {
+    setState(() {//根據歷史項目的類型進行對應的撤銷操作
       switch (item!.type) {
         case EditorHistoryItemType.draw:
           for (Stroke stroke in item.strokes) {
@@ -460,15 +558,15 @@ class EditorState extends State<Editor> {
     EditorHistoryItem item = history.redo();
 
     switch (item.type) {
-      case EditorHistoryItemType.draw:
+      case EditorHistoryItemType.draw://繪製操作
         undo(item.copyWith(type: EditorHistoryItemType.erase));
-      case EditorHistoryItemType.erase:
+      case EditorHistoryItemType.erase://擦除操作
         undo(item.copyWith(type: EditorHistoryItemType.draw));
-      case EditorHistoryItemType.deletePage:
+      case EditorHistoryItemType.deletePage://刪除頁面
         undo(item.copyWith(type: EditorHistoryItemType.insertPage));
-      case EditorHistoryItemType.insertPage:
+      case EditorHistoryItemType.insertPage://插入頁面
         undo(item.copyWith(type: EditorHistoryItemType.deletePage));
-      case EditorHistoryItemType.move:
+      case EditorHistoryItemType.move://移動操作
         undo(item.copyWith(
             offset: Rect.fromLTRB(
           -item.offset!.left,
@@ -476,11 +574,11 @@ class EditorState extends State<Editor> {
           -item.offset!.right,
           -item.offset!.bottom,
         )));
-      case EditorHistoryItemType.quillChange:
+      case EditorHistoryItemType.quillChange://Quill 操作
         undo(item.copyWith(type: EditorHistoryItemType.quillUndoneChange));
       case EditorHistoryItemType.quillUndoneChange: // this will never happen
         throw Exception('history should not contain quillUndoneChange items');
-      case EditorHistoryItemType.changeColor:
+      case EditorHistoryItemType.changeColor://顏色更改
         undo(item.copyWith(
             colorChange: item.colorChange!
                 .map((key, value) => MapEntry(key, value.swap()))));
