@@ -109,6 +109,7 @@ import 'package:flutter_quill/flutter_quill.dart' as flutter_quill;
 import 'package:keybinder/keybinder.dart';
 import 'package:logging/logging.dart';
 import 'package:printing/printing.dart';
+import 'package:saber/ChatGPT.dart';
 import 'package:saber/components/canvas/_asset_cache.dart';
 import 'package:saber/components/canvas/_stroke.dart';
 import 'package:saber/components/canvas/canvas.dart';
@@ -145,6 +146,7 @@ import 'package:saber/i18n/strings.g.dart';
 import 'package:saber/pages/home/whiteboard.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:super_clipboard/super_clipboard.dart';
+
 
 typedef _PhotoInfo = ({Uint8List bytes, String extension});//圖像數據和對應的文件擴展名
 
@@ -195,6 +197,7 @@ class Editor extends StatefulWidget {
 }
 // EditorState 類繼承自 State<Editor>，專門為 Editor 組件管理狀態
 class EditorState extends State<Editor> {
+  bool _isSearchOpen = false;
   final log = Logger('EditorState');// 使用 Logger 工具紀錄日誌
 
   late EditorCoreInfo coreInfo = EditorCoreInfo(filePath: '');// 延遲初始化，用於存儲編輯核心信息
@@ -264,6 +267,7 @@ class EditorState extends State<Editor> {
     }
   }();// 獲取当前工具。
   Tool get currentTool => _currentTool;
+
   set currentTool(Tool tool) {//設置當前工具，並更新偏好設置中的上次工具
     _currentTool = tool;
     Prefs.lastTool.value = tool.toolId;
@@ -1619,36 +1623,76 @@ class EditorState extends State<Editor> {
       ),
     );
 
-    final Widget body;
-    if (isToolbarVertical) {
-      body = Row(
-        textDirection: Prefs.editorToolbarAlignment.value == AxisDirection.left
-            ? TextDirection.ltr
-            : TextDirection.rtl,
-        children: [
-          toolbar,
-          Expanded(
-              child: Column(
+    Widget body = LayoutBuilder(
+      builder: (context, constraints) {
+        final double screenWidth = constraints.maxWidth;
+        final double screenHeight = constraints.maxHeight;
+
+        if (isToolbarVertical) {
+          return Row(
+            textDirection: Prefs.editorToolbarAlignment.value == AxisDirection.left
+                ? TextDirection.ltr
+                : TextDirection.rtl,
             children: [
-              Expanded(child: canvas),
-              if (readonlyBanner != null) readonlyBanner,
+              toolbar,
+              Expanded(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: canvas,
+                    ),
+                    if (readonlyBanner != null) readonlyBanner,
+                  ],
+                ),
+              ),
             ],
-          )),
-        ],
-      );
-    } else {
-      body = Column(
-        verticalDirection:
-            Prefs.editorToolbarAlignment.value == AxisDirection.up
+          );
+        } else {
+          return Column(
+            verticalDirection: Prefs.editorToolbarAlignment.value == AxisDirection.up
                 ? VerticalDirection.up
                 : VerticalDirection.down,
-        children: [
-          Expanded(child: canvas),
-          toolbar,
-          if (readonlyBanner != null) readonlyBanner,
-        ],
-      );
-    }
+            children: [
+              Stack(
+                children: [
+                  // 原始界面
+                  SizedBox(
+                    width: screenWidth,
+                    height: screenHeight - kToolbarHeight, // 考慮工具欄的高度
+                    child: canvas,
+                  ),
+                  toolbar,
+                  Container(
+                    // 添加原始界面的小部件
+                  ),
+                  // 搜索按鈕
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _isSearchOpen = true;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        color: Colors.blue, // 調整顏色
+                        child: const Icon(Icons.search, color: Colors.white), // 添加搜索圖標
+                      ),
+                    ),
+                  ),
+                  // 如果搜索界面打开，则显示搜索界面
+                  if (_isSearchOpen)
+                    searchInterfaceDialog(context),
+                ],
+              ),
+              if (readonlyBanner != null) readonlyBanner,
+            ],
+          );
+        }
+      },
+    );
 
     return ValueListenableBuilder(
       valueListenable: savingState,
@@ -1762,6 +1806,41 @@ class EditorState extends State<Editor> {
                 child: const Icon(Icons.fullscreen_exit),
               )
             : null,
+      ),
+    );
+  }
+
+  AlertDialog searchInterfaceDialog(BuildContext context) {
+    return AlertDialog(
+      insetPadding: EdgeInsets.only(left: MediaQuery.of(context).size.width * 0.7),
+      contentPadding: EdgeInsets.zero,
+      content: Padding(
+        padding: EdgeInsets.zero,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AppBar(
+              automaticallyImplyLeading: false,
+              title: const Text('Search Interface'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    setState(() {
+                      _isSearchOpen = false; // 将 _isSearchOpen 设置为 false
+                    });
+                  },
+                ),
+              ],
+            ),
+            Container(
+              width: MediaQuery.of(context).size.width * 0.3,
+              height: MediaQuery.of(context).size.height * 0.7,
+              padding: const EdgeInsets.all(16),
+              child:ChatScreen(),
+            ),
+          ],
+        ),
       ),
     );
   }
