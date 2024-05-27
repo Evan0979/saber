@@ -1,3 +1,100 @@
+/*Editor 類概述
+屬性:
+initialPath: Future<String> - 初始檔案路徑，可能是提供的或創建的。
+needsNaming: bool - 指示是否需要命名檔案。
+customTitle: String? - 編輯器的自定義標題。
+pdfPath: String? - 要加載的 PDF 文件路徑。
+extension: const String - 應用程序使用的文件擴展名（.sbn2）。
+extensionOldJson: const String - 應用程序使用的舊文件擴展名（.sbn）。
+gapBetweenPages: const double - 頁面之間的間距。
+_reservedFilePaths: List<RegExp> - 用於隱藏文件的保留路徑。
+canRasterPdf: bool - 指示平台是否可以光柵化 PDF。
+方法:
+isReservedPath(String path): 檢查給定的路徑是否是保留路徑。
+createState(): 為 Editor 小部件創建可變狀態。
+EditorState 類概述
+屬性:
+log: Logger - 用於記錄日誌的實例。
+coreInfo: EditorCoreInfo - 編輯器的核心信息。
+_canvasGestureDetectorKey: GlobalKey<CanvasGestureDetectorState> - 畫布手勢檢測器的鍵。
+_transformationController: TransformationController - 管理變換（如縮放和平移）。
+scrollY: double - 計算 Y 軸的滾動位置。
+history: EditorHistory - 管理編輯器歷史記錄以進行撤銷/重做操作。
+needsNaming: bool - 指示是否需要命名。
+_currentTool: Tool - 當前選中的工具。
+currentTool: Tool - 當前工具的 getter。
+savingState: ValueNotifier<SavingState> - 跟踪保存狀態。
+_delayedSaveTimer: Timer? - 用於延遲保存操作的計時器。
+lastSeenPointerCount: int - 跟踪上次看到的指針數量。
+_lastSeenPointerCountTimer: Timer? - 指針數量跟踪計時器。
+quillFocus: ValueNotifier<QuillStruct?> - 管理 Quill 編輯器的焦點狀態。
+tmpTool: Tool? - 切換到橡皮擦之前使用的臨時工具。
+stylusButtonPressed: bool - 記錄觸控筆按鈕是否被按下。
+_ctrlZ, _ctrlY, _ctrlShiftZ: Keybinding? - 撤銷/重做操作的鍵盤快捷鍵。
+_filenameFormKey: GlobalKey<FormState> - 文件名輸入表單的鍵。
+filenameTextEditingController: TextEditingController - 文件名輸入的控制器。
+_renameTimer: Timer? - 延遲重命名操作的計時器。
+方法:
+initState(): 初始化編輯器的狀態。
+_initAsync(): 執行異步初始化。
+_assignKeybindings(): 分配撤銷/重做的鍵盤快捷鍵。
+_removeKeybindings(): 移除鍵盤快捷鍵。
+createPage(int pageIndex): 創建頁面直到給定的頁面索引存在，並且加上一個空白頁面。
+removeExcessPages(): 如果頁面是空的，則移除多餘的頁面。
+undo([EditorHistoryItem? item]): 執行撤銷操作。
+redo(): 執行重做操作。
+onWhichPageIsFocalPoint(Offset focalPoint): 確定焦點在哪個頁面上。
+onDrawStart(ScaleStartDetails details): 處理繪圖開始事件。
+onDrawUpdate(ScaleUpdateDetails details): 處理繪圖更新事件。
+onDrawEnd(ScaleEndDetails details): 處理繪圖結束事件。
+onInteractionEnd(ScaleEndDetails details): 處理交互結束事件。
+onPressureChanged(double? pressure): 處理壓力改變事件。
+onStylusButtonChanged(bool buttonPressed): 處理觸控筆按鈕改變事件。
+onMoveImage(EditorImage image, Rect offset): 處理圖像移動事件。
+onDeleteImage(EditorImage image): 處理圖像刪除事件。
+listenToQuillChanges(QuillStruct quill, int pageIndex): 監聽 Quill 編輯器的更改。
+_onQuillFocusChange(): 處理 Quill 編輯器的焦點改變。
+_addQuillChangeToHistory(...): 將 Quill 更改添加到歷史記錄中。
+autosaveAfterDelay(): 在延遲後自動保存。
+saveToFile(): 將文件保存到磁碟。
+renameFile([String? _]): 延遲重命名文件。
+_renameFileNow(): 執行實際的重命名操作。
+_validateFilenameTextField(String? newName): 驗證文件名輸入。
+updateColorBar(Color color): 使用給定的顏色更新顏色欄。
+_pickPhotos([List<_PhotoInfo>? photoInfos]): 提示用戶從設備中選擇照片。
+_pickPhotosWithFilePicker(): 使用文件選擇器選擇照片。
+importPdf(): 提示用戶選擇要導入的 PDF。
+importPdfFromFilePath(String path): 從給定的文件路徑導入 PDF。
+paste(): 從剪貼板粘貼內容。
+exportAsPdf(BuildContext context): 將當前筆記導出為 PDF 文件。
+exportAsSba(BuildContext context): 將當前筆記導出為 SBA (Saber Archive) 文件。
+setAndroidNavBarColor(): 設置 Android 導航欄顏色。
+build(BuildContext context): 構建小部件樹。
+snackBarNeedsToSaveBeforeExiting(): 顯示提示需要在退出前保存的 Snackbar。
+bottomSheet(BuildContext context): 構建底部選單以提供附加選項。
+pageBuilder(BuildContext context, int pageIndex): 為特定頁面構建畫布。
+pagePreviewBuilder(...): 為特定頁面構建預覽。
+pageManager(BuildContext context): 管理編輯器中的頁面。
+insertPageAfter(int pageIndex): 在指定頁面索引之後插入新頁面。
+clearPage(int pageIndex): 清除指定頁面的內容。
+clearAllPages(): 清除所有頁面的內容。
+askUserToDisableReadOnly(): 提示用戶禁用只讀模式。
+getPageIndexFromScrollPosition(...): 從滾動位置獲取頁面索引。
+dispose(): 釋放資源並執行清理。
+常量:
+extension: .sbn2
+extensionOldJson: .sbn
+gapBetweenPages: 16.0
+小部件:
+CanvasGestureDetector: 檢測畫布交互手勢。
+Toolbar: 包含編輯器的工具和操作。
+SaveIndicator: 顯示保存狀態。
+AdaptiveAlertDialog: 顯示提示對話框。
+AppBar: 顯示應用程序欄。
+Scaffold: 提供編輯器 UI 的結構。
+Form: 處理文件名輸入表單。
+TextFormField: 允許文件名輸入。*/
+
 import 'dart:async';//異步編程
 import 'dart:convert';//數據轉換功能
 import 'dart:io';//處理檔案、目錄、程序、套接字、Webstockets以及HTTP客戶端和伺服器
