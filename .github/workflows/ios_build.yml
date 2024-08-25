@@ -1,0 +1,33 @@
+name: iOS Build
+
+on:
+  push:
+    branches:
+      - main  # 這裡指定在推送到 main 分支時觸發構建，你可以改成其他分支名稱
+
+jobs:
+  build:
+    runs-on: macos-latest  # 使用 GitHub 提供的 macOS runner
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2  # 檢出當前的代碼
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2  # 安裝指定版本的 Flutter
+        with:
+          flutter-version: '3.3.0'  # 替換為你的 Flutter 版本
+
+      - name: Install dependencies
+        run: flutter pub get  # 安裝 Flutter 項目依賴項
+
+      - name: Set up Xcode
+        run: sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer  # 設置 Xcode 環境
+
+      - name: Install CocoaPods
+        run: |
+          brew install cocoapods
+          pod setup  # 安裝並設置 CocoaPods
+
+      - name: Build iOS
+        run: flutter build ipa --release  # 構建 iOS 應用
